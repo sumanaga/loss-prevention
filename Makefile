@@ -25,15 +25,17 @@ DOCKER_COMPOSE ?= docker-compose.yml
 DOCKER_COMPOSE_REGISTRY ?= docker-compose-reg.yml
 
 TAG ?= rc2
+LP_TAG = $(shell cat VERSION)
+PT_TAG = $(shell cat performance-tools/VERSION)
 #local image references
-MODELDOWNLOADER_IMAGE ?= model-downloader-lp:4.3.2
-PIPELINE_RUNNER_IMAGE ?= pipeline-runner-lp:4.3.2
-BENCHMARK_IMAGE ?= benchmark:latest
+MODELDOWNLOADER_IMAGE ?= model-downloader-lp:$(LP_TAG)
+PIPELINE_RUNNER_IMAGE ?= pipeline-runner-lp:$(LP_TAG)
+BENCHMARK_IMAGE ?= benchmark:$(PT_TAG)
 REGISTRY ?= true
 # Registry image references
-REGISTRY_MODEL_DOWNLOADER ?= intel/model-downloader-lp:4.3.2
-REGISTRY_PIPELINE_RUNNER ?= intel/pipeline-runner-lp:4.3.2
-REGISTRY_BENCHMARK ?= intel/retail-benchmark:3.3.1
+REGISTRY_MODEL_DOWNLOADER ?= intel/model-downloader-lp:$(LP_TAG)
+REGISTRY_PIPELINE_RUNNER ?= intel/pipeline-runner-lp:$(LP_TAG)
+REGISTRY_BENCHMARK ?= intel/retail-benchmark:$(PT_TAG)
 
 check-models:
 	@chmod +x check_models.sh
@@ -115,10 +117,10 @@ run-pipeline-runner:
 
 
 update-submodules:
-	@echo "Cloning performance tool repositories"
-	git submodule deinit -f .
-	git submodule update --init --recursive
-	@echo "Submodules updated (if any present)."
+#	@echo "Cloning performance tool repositories"
+#	git submodule deinit -f .
+#	git submodule update --init --recursive
+#	@echo "Submodules updated (if any present)."
 
 fetch-benchmark:
 	@echo "Fetching benchmark image from registry..."
@@ -132,7 +134,7 @@ build-benchmark:
 		$(MAKE) fetch-benchmark; \
 	else \
 		$(MAKE) build-pipeline-runner; \
-		cd performance-tools && $(MAKE) build-benchmark-docker; \
+		cd performance-tools && PT_TAG=$(PT_TAG) $(MAKE) build-benchmark-docker; \
 	fi
 
 benchmark: build-benchmark download-sample-videos download-models	
@@ -143,9 +145,9 @@ benchmark: build-benchmark download-sample-videos download-models
 	. venv/bin/activate && \
 	pip3 install -r requirements.txt && \
 	if [ "$(REGISTRY)" = "true" ]; then \
-		python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE_REGISTRY) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR) --benchmark_type reg; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE_REGISTRY) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR) --benchmark_type reg; \
 	else \
-		python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR); \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR); \
 	fi && \
 	deactivate \
 	)
@@ -161,19 +163,19 @@ run-lp: | validate_workload_mapping update-submodules download-sample-videos dow
 down-lp:
 	@if [ "$(REGISTRY)" = "true" ]; then \
 		echo "Stopping registry demo containers..."; \
-		docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) down; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) down; \
 		echo "Registry demo containers stopped and removed."; \
 	else \
-		docker compose -f src/$(DOCKER_COMPOSE) down; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE) down; \
 	fi
 
 run:
 	@if [ "$(REGISTRY)" = "true" ]; then \
 		echo "##############Using registry mode - fetching pipeline runner..."; \
-		BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) up -d; \
+		BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) up -d; \
 	else \
-		docker compose -f src/$(DOCKER_COMPOSE) build pipeline-runner; \
-		BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE) up -d; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE) build pipeline-runner; \
+		BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE) up -d; \
 	fi
 
 run-render-mode:
@@ -190,10 +192,10 @@ run-render-mode:
 	@xhost +local:docker
 	@if [ "$(REGISTRY)" = "true" ]; then \
 		echo "##############Using registry mode - fetching pipeline runner..."; \
-		RENDER_MODE=1 CAMERA_STREAM=$(CAMERA_STREAM) WORKLOAD_DIST=$(WORKLOAD_DIST) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) up -d; \
+		RENDER_MODE=1 CAMERA_STREAM=$(CAMERA_STREAM) WORKLOAD_DIST=$(WORKLOAD_DIST) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE_REGISTRY) up -d; \
 	else \
-		docker compose -f src/$(DOCKER_COMPOSE) build pipeline-runner; \
-		RENDER_MODE=1 CAMERA_STREAM=$(CAMERA_STREAM) WORKLOAD_DIST=$(WORKLOAD_DIST) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE) up -d; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE) build pipeline-runner; \
+		RENDER_MODE=1 CAMERA_STREAM=$(CAMERA_STREAM) WORKLOAD_DIST=$(WORKLOAD_DIST) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) docker compose -f src/$(DOCKER_COMPOSE) up -d; \
 	fi
 	$(MAKE) clean-images
 
@@ -218,7 +220,7 @@ benchmark-stream-density: build-benchmark download-models
 	. venv/bin/activate && \
 	pip3 install -r requirements.txt && \
 	if [ "$(REGISTRY)" = "true" ]; then \
-		python3 benchmark.py \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py \
 			--compose_file ../../src/$(DOCKER_COMPOSE_REGISTRY) \
 			--init_duration $(INIT_DURATION) \
 			--target_fps $(TARGET_FPS) \
@@ -227,7 +229,7 @@ benchmark-stream-density: build-benchmark download-models
 			--benchmark_type reg \
 			--results_dir $(RESULTS_DIR); \
 	else \
-		python3 benchmark.py \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py \
 			--compose_file ../../src/$(DOCKER_COMPOSE) \
 			--init_duration $(INIT_DURATION) \
 			--target_fps $(TARGET_FPS) \
@@ -243,7 +245,7 @@ benchmark-quickstart: download-models download-sample-videos
 		echo "Using registry mode - skipping benchmark container build..."; \
 	else \
 		echo "Building benchmark container locally..."; \
-		$(MAKE) build-benchmark; \
+		PT_TAG=$(PT_TAG) $(MAKE) build-benchmark; \
 	fi
 	cd performance-tools/benchmark-scripts && \
 	export MULTI_STREAM_MODE=1 && \
@@ -252,9 +254,9 @@ benchmark-quickstart: download-models download-sample-videos
 	. venv/bin/activate && \
 	pip3 install -r requirements.txt && \
 	if [ "$(REGISTRY)" = "true" ]; then \
-		python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE_REGISTRY) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR) --benchmark_type reg; \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE_REGISTRY) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR) --benchmark_type reg; \
 	else \
-		python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR); \
+		LP_TAG=$(LP_TAG) PT_TAG=$(PT_TAG) python3 benchmark.py --compose_file ../../src/$(DOCKER_COMPOSE) --pipelines $(PIPELINE_COUNT) --results_dir $(RESULTS_DIR); \
 	fi && \
 	deactivate \
 	)
