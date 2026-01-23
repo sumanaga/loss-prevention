@@ -111,8 +111,9 @@ def build_gst_element(cfg):
     
     CLASSIFICATION_PRE_PROCESS = env_vars.get("CLASSIFICATION_PRE_PROCESS", "")
     # Add inference-region=1 if region_of_interest is present in cfg (from camera_to_workload.json)
-    inference_region = ""   
-    name_str = f"name={camera_id}_{workload_name}" if workload_name and camera_id and cfg["type"] == "gvadetect" else ""
+    inference_region = ""                
+    name_index = cfg.get("name_idx", "")
+    name_str = f"name={camera_id}_{workload_name}_{name_index}" if workload_name and camera_id and cfg["type"] == "gvadetect" else ""
     if cfg["type"] == "gvadetect" and cfg.get("region_of_interest") is not None:
         inference_region = " inference-region=1"
 
@@ -226,6 +227,7 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
             step_env_vars = get_env_vars_for_device(step["device"]) if "device" in step else {}
             if step["type"] == "gvadetect":
                 model_instance_id = f"detect{branch_idx+1}_{idx+1}"
+                step["name_idx"] = i+1
                 elem, _ = build_gst_element(step)
                 elem = elem.replace("gvadetect", f"gvadetect model-instance-id={model_instance_id} threshold=0.5")
                 pipeline += f" ! {elem} ! gvatrack tracking-type=zero-term-imageless ! queue"
@@ -288,7 +290,7 @@ def format_pipeline_branch(pipeline):
     # Wrap in parentheses for GStreamer parallel branches
     return f'({pipeline})'
 
-def main():
+def main(num_of_pipelines=1):
     # Ensure results directory exists at project root before running pipeline
     results_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results"))
     os.makedirs(results_dir, exist_ok=True)
@@ -322,12 +324,16 @@ def main():
         
         filtered_cameras.append(cam)
     
-    # Process only filtered cameras
-    for idx, cam in enumerate(filtered_cameras):
-        workloads = [w.lower() for w in cam["workloads"]]
-        norm_workload_map = {k.lower(): v for k, v in workload_map.items()}
-        cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, timestamp=timestamp)
-        pipelines.extend([p.strip() for p in cam_pipelines])
+    # Process only filtered cameras - repeat based on num_of_pipelines
+    for pipeline_instance in range(num_of_pipelines):
+        for idx, cam in enumerate(filtered_cameras):
+            workloads = [w.lower() for w in cam["workloads"]]
+            norm_workload_map = {k.lower(): v for k, v in workload_map.items()}
+            # Adjust branch_idx to account for multiple pipeline instances
+            #adjusted_branch_idx = idx + (pipeline_instance * len(filtered_cameras))
+            cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, timestamp=timestamp)
+            pipelines.extend([p.strip() for p in cam_pipelines])
+    
     # Print gst-launch-1.0 --verbose and all pipelines, each filesrc on a new line, with a backslash at the end except the last
     print("gst-launch-1.0 --verbose \\")
     for idx, p in enumerate(pipelines):
@@ -335,4 +341,16 @@ def main():
         print(f"  {p}{end}")
 
 if __name__ == "__main__":
-    main()
+    # Parse command line argument for number of pipelines
+    num_of_pipelines = 1  # Default value
+    if len(sys.argv) > 1:
+        try:
+            num_of_pipelines = int(sys.argv[1])
+            if num_of_pipelines < 1:
+                print(f"Warning: Invalid num_of_pipelines value {num_of_pipelines}, using default 1", file=sys.stderr)
+                num_of_pipelines = 1
+        except ValueError:
+            print(f"Warning: Invalid num_of_pipelines value '{sys.argv[1]}', using default 1", file=sys.stderr)
+            num_of_pipelines = 1
+    
+    main(num_of_pipelines)

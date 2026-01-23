@@ -193,9 +193,6 @@ services:
         - HTTP_PROXY=${HTTP_PROXY}
         - HTTPS_PROXY=${HTTPS_PROXY}
     image: intel/pipeline-runner-lp:4.4.0
-    deploy:
-      mode: replicated
-      replicas: ${PIPELINE_COUNT:-1}
     depends_on:
       model-downloader:
         condition: service_completed_successfully
@@ -217,6 +214,7 @@ services:
       - WORKLOAD_DIST=${WORKLOAD_DIST:-workload_to_pipeline.json}
       - BATCH_SIZE_DETECT=${BATCH_SIZE_DETECT:-1}
       - BATCH_SIZE_CLASSIFY=${BATCH_SIZE_CLASSIFY:-1}
+      - PIPELINE_COUNT=${PIPELINE_COUNT:-1}
     
     volumes:
       - ../models:/home/pipeline-server/models
