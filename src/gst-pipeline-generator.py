@@ -141,11 +141,13 @@ def build_gst_element(cfg):
         elem = cfg["type"]
     return elem, DECODE
 
-def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=0, model_instance_map=None, model_instance_counter=None, timestamp=None):
+def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=0, model_instance_map=None, model_instance_counter=None, name_idx_counter=None, timestamp=None):
     if model_instance_map is None:
         model_instance_map = {}
     if model_instance_counter is None:
         model_instance_counter = [0]  # Use list for mutability in nested scope
+    if name_idx_counter is None:
+        name_idx_counter = [0]  # Use list for mutability in nested scope
     # For each workload, build its steps and signature
     workload_steps = []
     workload_signatures = []
@@ -227,7 +229,8 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
             step_env_vars = get_env_vars_for_device(step["device"]) if "device" in step else {}
             if step["type"] == "gvadetect":
                 model_instance_id = f"detect{branch_idx+1}_{idx+1}"
-                step["name_idx"] = i+1
+                name_idx_counter[0] += 1
+                step["name_idx"] = name_idx_counter[0]
                 elem, _ = build_gst_element(step)
                 elem = elem.replace("gvadetect", f"gvadetect model-instance-id={model_instance_id} threshold=0.5")
                 pipeline += f" ! {elem} ! gvatrack tracking-type=zero-term-imageless ! queue"
@@ -250,12 +253,13 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
             if i < len(steps) - 1:
                 if not (step["type"] == "gvadetect"):
                     pipeline += " ! queue"
-        tee_name = f"t{branch_idx+1}_{idx+1}"
+        name_idx_counter[0] += 1
+        tee_name = f"t{branch_idx+1}_{idx+1}_{name_idx_counter[0]}"
         has_gvapython = any(step.get("type") == "gvapython" for step in steps)
         if not has_gvapython:
             pipeline += f" ! gvametaconvert ! tee name={tee_name} "
             results_dir = "/home/pipeline-server/results"
-            out_file = f"{results_dir}/rs-{branch_idx+1}_{idx+1}_{timestamp}.jsonl"
+            out_file = f"{results_dir}/rs-{branch_idx+1}_{idx+1}__{name_idx_counter[0]}_{timestamp}.jsonl"
             pipeline += f"    {tee_name}. ! queue ! gvametapublish file-format=json-lines file-path={out_file} ! gvafpscounter ! fakesink sync=false async=false "
         else:
             pipeline += f" ! tee name={tee_name}  {tee_name}. ! queue ! gvafpscounter ! fakesink sync=false async=false"
@@ -303,6 +307,7 @@ def main(num_of_pipelines=1):
     pipelines = []
     model_instance_map = {}
     model_instance_counter = [0]
+    name_idx_counter = [0]
     
     # Filter out cameras with lp_vlm workload
     cameras = camera_config["lane_config"]["cameras"]
@@ -331,11 +336,11 @@ def main(num_of_pipelines=1):
             norm_workload_map = {k.lower(): v for k, v in workload_map.items()}
             # Adjust branch_idx to account for multiple pipeline instances
             #adjusted_branch_idx = idx + (pipeline_instance * len(filtered_cameras))
-            cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, timestamp=timestamp)
+            cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, name_idx_counter=name_idx_counter, timestamp=timestamp)
             pipelines.extend([p.strip() for p in cam_pipelines])
     
     # Print gst-launch-1.0 --verbose and all pipelines, each filesrc on a new line, with a backslash at the end except the last
-    print("gst-launch-1.0 --verbose \\")
+    print("GST_DEBUG=\"GST_TRACER:7\" GST_TRACERS='latency_tracer(flags=pipeline)' gst-launch-1.0 --verbose \\")
     for idx, p in enumerate(pipelines):
         end = " \\" if idx < len(pipelines) - 1 else ""
         print(f"  {p}{end}")

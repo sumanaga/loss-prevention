@@ -9,12 +9,16 @@
 set -euo pipefail
 
 echo ">>>>>>>>>>>>> VLM_WORKLOAD_ENABLED=${VLM_WORKLOAD_ENABLED} <<<<<<<<<<<<<<<"
+echo ">>>>>>>>>>>>> DEBUG: Environment variables related to PIPELINE <<<<<<<<<<<<<<<"
+env | grep -i pipeline || echo "No PIPELINE variables found"
+echo ">>>>>>>>>>>>> DEBUG: All environment variables <<<<<<<<<<<<<<<"
+env | sort
 #sleep 2h
 if [ "${VLM_WORKLOAD_ENABLED}" = "0" ]; then
     # Parse command line arguments
     pipelines_dir="${1:-/home/pipeline-server/pipelines}"
     pipeline_file_name="${2:-pipeline.sh}"
-    num_of_pipelines=${PIPELINE_COUNT}
+    num_of_pipelines=${PIPELINE_COUNT:-1}
     echo "################# Using pipelines directory: $pipelines_dir ###################"
     echo "################# Using pipeline file name: $pipeline_file_name ###################"
     echo "################# Using number of pipelines: $num_of_pipelines ###################"
@@ -89,7 +93,7 @@ if [ "${VLM_WORKLOAD_ENABLED}" = "0" ]; then
     done
 
     # Set GStreamer tracing environment
-    export GST_DEBUG="GST_TRACER:7"
+    export GST_DEBUG="GST_TRACER:7,gvaclassify:5,gvadetect:5,gvatrack:5,vaapi:5"
     export GST_TRACERS="latency(flags=pipeline)"
     export GST_VAAPI_INIT_DRM_DEVICE=/dev/dri/renderD128
 
@@ -145,6 +149,7 @@ if [ "${VLM_WORKLOAD_ENABLED}" = "0" ]; then
     wait $GST_PID
 
     echo "############# GST COMMAND COMPLETED SUCCESSFULLY #############"
+    #sleep 2h
 else
     echo "########### lp_vlm workload is detected in camera-workload config #############"
     echo "VLM_WORKLOAD_ENABLED=1 detected. Launching lp_vlm based workload ..."
