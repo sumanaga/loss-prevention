@@ -155,6 +155,7 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
     camera_id = camera.get("camera_id", f"cam{branch_idx+1}")
     signature_to_steps = {}
     signature_to_video = {}
+    queue_params = "max-size-buffers=3 max-size-time=100000000 leaky=downstream"
     for w in workloads:
         if w in workload_map:
             steps = []
@@ -218,7 +219,7 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
         if rois:
             roi_strs = [f"roi={r['x']},{r['y']},{r['x2']},{r['y2']}" for r in rois]
             gvaattachroi_elem = "gvaattachroi " + " ".join(roi_strs)
-            pipeline += f" ! {gvaattachroi_elem} ! queue"
+            pipeline += f" ! {gvaattachroi_elem} ! queue "
         # Only add gvaattachroi if region_of_interest is present (i.e., rois is not empty)
         # Remove unconditional gvaattachroi for first inference step
         inference_types = {"gvadetect", "gvaclassify", "gvainference"}
@@ -242,7 +243,9 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
                 pipeline += f" ! {elem} "
                 last_added_queue = True
             elif step["type"] == "gvainference":
+                model_instance_id = f"inference{branch_idx+1}_{idx+1}"
                 elem, _ = build_gst_element(step)
+                elem = elem.replace("gvainference", f"gvainference model-instance-id={model_instance_id}")
                 pipeline += f" ! {elem} "    
                 last_added_queue = True
             elif step["type"] == "gvapython":
@@ -252,17 +255,18 @@ def build_dynamic_gstlaunch_command(camera, workloads, workload_map, branch_idx=
             # Only add queue if not just added by gvadetect/gvatrack
             if i < len(steps) - 1:
                 if not (step["type"] == "gvadetect"):
-                    pipeline += " ! queue"
+                    pipeline += f" ! queue"
         name_idx_counter[0] += 1
         tee_name = f"t{branch_idx+1}_{idx+1}_{name_idx_counter[0]}"
+        stream_id = f"stream{branch_idx+1}_{idx+1}_{name_idx_counter[0]}"
         has_gvapython = any(step.get("type") == "gvapython" for step in steps)
         if not has_gvapython:
             pipeline += f" ! gvametaconvert ! tee name={tee_name} "
             results_dir = "/home/pipeline-server/results"
             out_file = f"{results_dir}/rs-{branch_idx+1}_{idx+1}__{name_idx_counter[0]}_{timestamp}.jsonl"
-            pipeline += f"    {tee_name}. ! queue ! gvametapublish file-format=json-lines file-path={out_file} ! gvafpscounter ! fakesink sync=false async=false "
+            pipeline += f"    {tee_name}. ! queue ! gvametapublish file-format=json-lines file-path={out_file} ! gvafpscounter name={stream_id} "
         else:
-            pipeline += f" ! tee name={tee_name}  {tee_name}. ! queue ! gvafpscounter ! fakesink sync=false async=false"
+            pipeline += f" ! tee name={tee_name}  {tee_name}. ! queue ! gvafpscounter name={stream_id} "
             #pipeline += f"    {tee_name}. ! queue ! gvafpscounter ! fakesink sync=false async=false "
         render_mode = os.environ.get("RENDER_MODE", "0")
         if render_mode == "1":
@@ -340,7 +344,7 @@ def main(num_of_pipelines=1):
             pipelines.extend([p.strip() for p in cam_pipelines])
     
     # Print gst-launch-1.0 --verbose and all pipelines, each filesrc on a new line, with a backslash at the end except the last
-    print("GST_DEBUG=\"GST_TRACER:7\" GST_TRACERS='latency_tracer(flags=pipeline)' gst-launch-1.0 --verbose \\")
+    print("GST_DEBUG=GST_TRACER:7,gvafpscounter:4 GST_TRACERS=\"latency_tracer(flags=pipeline)\" gst-launch-1.0 --verbose \\")
     for idx, p in enumerate(pipelines):
         end = " \\" if idx < len(pipelines) - 1 else ""
         print(f"  {p}{end}")
