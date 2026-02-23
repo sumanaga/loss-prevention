@@ -478,17 +478,6 @@ def main(num_of_pipelines=1):
             print(f"Skipping camera {cam.get('camera_id', 'unknown')} with lp_vlm workload", file=sys.stderr)
             continue
         
-        # Check if stream exists for RTSP sources
-        stream_uri = derive_stream_uri(cam)
-        if stream_uri and stream_uri.startswith("rtsp://"):
-            if not check_rtsp_stream_exists(stream_uri):
-                camera_id = cam.get('camera_id', 'unknown')
-                file_src = str(cam.get("fileSrc", "")).split("|")[0].strip()
-                print(f"⚠️  WARNING: Skipping camera '{camera_id}' - RTSP stream not available: {stream_uri}", file=sys.stderr)
-                print(f"    Expected video file: {file_src}", file=sys.stderr)
-                print(f"    Please ensure the video exists in the sample-media directory.", file=sys.stderr)
-                continue
-        
         filtered_cameras.append(cam)
     
     # Process only filtered cameras
@@ -499,7 +488,9 @@ def main(num_of_pipelines=1):
             cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, name_idx_counter=name_idx_counter, timestamp=timestamp)
             pipelines.extend([p.strip() for p in cam_pipelines])
     # Print gst-launch-1.0 --verbose and all pipelines, each filesrc on a new line, with a backslash at the end except the last
-    print("GST_DEBUG=GST_TRACER:7,gvafpscounter:4 GST_TRACERS=\"latency_tracer(flags=pipeline)\" gst-launch-1.0 --verbose \\")
+    gst_debug = os.getenv('GST_DEBUG', 'GST_TRACER:7,gvafpscounter:4')
+    gst_tracers = os.getenv('GST_TRACERS', 'latency_tracer(flags=pipeline)')
+    print(f"GST_DEBUG={gst_debug} GST_TRACERS=\"{gst_tracers}\" gst-launch-1.0 --verbose \\")
     for idx, p in enumerate(pipelines):
         end = " \\" if idx < len(pipelines) - 1 else ""
         print(f"  {p}{end}")

@@ -199,7 +199,7 @@ The application runs the following Docker containers:
 - Run the workload
     
  ```
- make run-lp CAMERA_STREAM=camera_to_workload_vlm.json
+ make run-lp CAMERA_STREAM=camera_to_workload_vlm.json STREAM_LOOP=false
  ```
 
 ### 3. Configuration

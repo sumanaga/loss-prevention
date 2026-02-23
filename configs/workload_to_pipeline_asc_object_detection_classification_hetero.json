@@ -4,16 +4,15 @@
       {
         "type": "gvadetect",
         "model": "yolo11n",
-        "device": "CPU",
-        "precision": "FP32"
+        "device": "NPU",
+        "precision": "INT8"
       },
       {
         "type": "gvaclassify",
         "model": "efficientnet-b0",
-        "device": "CPU",
-        "precision": "FP32"
+        "device": "GPU",
+        "precision": "INT8"
       }
     ]
-
   }
 }

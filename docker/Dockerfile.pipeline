@@ -1,11 +1,9 @@
-FROM intel/dlstreamer:2026.0.0-20260203-weekly-ubuntu24
+FROM intel/dlstreamer:2026.0.0-ubuntu24-rc1
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ENV HTTP_PROXY=${HTTP_PROXY}
-ENV HTTPS_PROXY=${HTTPS_PROXY}
-ENV http_proxy=${HTTP_PROXY}
-ENV https_proxy=${HTTPS_PROXY}
+ARG http_proxy
+ARG https_proxy
 
 USER root
 WORKDIR /
