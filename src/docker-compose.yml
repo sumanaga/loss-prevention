@@ -144,6 +144,8 @@ services:
       - CAMERA_STREAM=${CAMERA_STREAM:-camera_to_workload.json}
       - RTSP_STREAM_HOST=${RTSP_STREAM_HOST:-rtsp-streamer}
       - RTSP_STREAM_PORT=${RTSP_STREAM_PORT:-8554}
+      - GST_DEBUG="4"
+      - GST_TRACERS="latency_tracer(flags=pipeline)"
     volumes:
       - ../lp-vlm/src/utils:/app/utils
       - ../lp-vlm/src/pipeline:/app/pipeline
@@ -172,6 +174,10 @@ services:
     image: intel/pipeline-runner-lp:2026.0-rc1
     #user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     environment:
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
       - VLM_WORKLOAD_ENABLED=${LP_VLM_WORKLOAD_ENABLED}
       - ROI_COORDINATES=${ROI_COORDINATES}
       - LP_IP=${LP_IP}
@@ -197,6 +203,8 @@ services:
       - RTSP_STREAM_HOST=${RTSP_STREAM_HOST:-rtsp-streamer}
       - RTSP_STREAM_PORT=${RTSP_STREAM_PORT:-8554}
       - CONTAINER_NAME=${CONTAINER_NAME:-gst}
+      - GST_DEBUG="4"
+      - GST_TRACERS="latency_tracer(flags=pipeline)"
     volumes:
       - ../lp-vlm/src/pipeline/publish.py:/home/pipeline-server/lp-vlm/gvapython/publish.py
       - ../lp-vlm/src/pipeline/send_end_message.py:/home/pipeline-server/lp-vlm/gvapython/send_end_message.py
@@ -236,6 +244,10 @@ services:
       model-downloader:
         condition: service_completed_successfully
     environment:
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
       - VLM_WORKLOAD_ENABLED=0
       - VIDEO_NAME=${VIDEO_NAME}
       - LP_IP=${LP_IP}
@@ -258,6 +270,8 @@ services:
       - NO_PROXY=localhost,127.0.0.0/8,10.0.0.0/24,*.intel.com,192.168.0.0/16,10.223.23.127,172.25.0.0/16,rtsp-streamer
       - no_proxy=localhost,127.0.0.0/8,10.0.0.0/24,*.intel.com,192.168.0.0/16,10.223.23.127,172.25.0.0/16,rtsp-streamer
       - PIPELINE_COUNT=${PIPELINE_COUNT:-1}
+      - GST_DEBUG=GST_TRACER:7,gvafpscounter:4
+      - GST_TRACERS=latency_tracer(flags=pipeline)
     
     volumes:
       - ../models:/home/pipeline-server/models
