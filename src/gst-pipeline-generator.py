@@ -74,7 +74,7 @@ def check_rtsp_stream_exists(stream_uri: str, timeout: int = 3) -> bool:
             text=True
         )
         
-        #  if stderr contains "Not Found" or "404"
+        # Check if stderr contains "Not Found" or "404"
         if result.stderr and ('Not Found' in result.stderr or '404' in result.stderr or 'Not found' in result.stderr):
             return False
             
@@ -85,7 +85,7 @@ def check_rtsp_stream_exists(stream_uri: str, timeout: int = 3) -> bool:
         # Timeout means stream connected successfully
         return True
     except Exception as e:
-        print(f"Warning: Could not  RTSP stream {stream_uri}: {e}", file=sys.stderr)
+        print(f"Warning: Could not check RTSP stream {stream_uri}: {e}", file=sys.stderr)
         # If we can't check, assume it exists to avoid false negatives
         return True
 
@@ -476,8 +476,7 @@ def main(num_of_pipelines=1):
         # Exclude camera if it has lp_vlm workload
         if "lp_vlm" in normalized_workloads:
             print(f"Skipping camera {cam.get('camera_id', 'unknown')} with lp_vlm workload", file=sys.stderr)
-            continue       
-        
+            continue
         
         filtered_cameras.append(cam)
     
@@ -489,7 +488,9 @@ def main(num_of_pipelines=1):
             cam_pipelines = build_dynamic_gstlaunch_command(cam, workloads, norm_workload_map, branch_idx=idx, model_instance_map=model_instance_map, model_instance_counter=model_instance_counter, name_idx_counter=name_idx_counter, timestamp=timestamp)
             pipelines.extend([p.strip() for p in cam_pipelines])
     # Print gst-launch-1.0 --verbose and all pipelines, each filesrc on a new line, with a backslash at the end except the last
-    print("GST_DEBUG=GST_TRACER:7,gvafpscounter:4 GST_TRACERS=\"latency_tracer(flags=pipeline)\" gst-launch-1.0 --verbose \\")
+    gst_debug = os.getenv('GST_DEBUG', 'GST_TRACER:7,gvafpscounter:4')
+    gst_tracers = os.getenv('GST_TRACERS', 'latency_tracer(flags=pipeline)')
+    print(f"GST_DEBUG={gst_debug} GST_TRACERS=\"{gst_tracers}\" gst-launch-1.0 --verbose \\")
     for idx, p in enumerate(pipelines):
         end = " \\" if idx < len(pipelines) - 1 else ""
         print(f"  {p}{end}")
