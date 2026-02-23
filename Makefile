@@ -133,9 +133,12 @@ down-lp:
 	@rm -f lp-vlm/lp-vlm.env
 	@echo "VLM cleanup completed"
 
-run:
+run: validate_workload_mapping download-sample-videos
 	@echo "Setting up environment for STREAM_LOOP..."
 	@mkdir -p results results/vlm-results
+	@LOG_FILE="vlm_loss_prevention.log"; \
+	    mkdir -p $$(dirname $$LOG_FILE); \
+	    [ -f $$LOG_FILE ] || touch $$LOG_FILE
 	@if [ "$(REGISTRY)" = "true" ]; then \
 		echo "##############Using registry mode - fetching pipeline runner..."; \
 		LOCAL_UID=$(shell id -u) LOCAL_GID=$(shell id -g) LP_VLM_WORKLOAD_ENABLED=$(LP_VLM_WORKLOAD_ENABLED) STREAM_LOOP=$(STREAM_LOOP_VALUE) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE) up -d; \
@@ -144,7 +147,7 @@ run:
 		LOCAL_UID=$(shell id -u) LOCAL_GID=$(shell id -g) LP_VLM_WORKLOAD_ENABLED=$(LP_VLM_WORKLOAD_ENABLED) STREAM_LOOP=$(STREAM_LOOP_VALUE) BATCH_SIZE_DETECT=$(BATCH_SIZE_DETECT) BATCH_SIZE_CLASSIFY=$(BATCH_SIZE_CLASSIFY) docker compose -f src/$(DOCKER_COMPOSE) up --build -d; \
 	fi
 
-run-render-mode: validate_workload_mapping
+run-render-mode: validate_workload_mapping download-sample-videos
 	@if [ -z "$(DISPLAY)" ] || ! echo "$(DISPLAY)" | grep -qE "^:[0-9]+(\.[0-9]+)?$$"; then \
 		echo "ERROR: Invalid or missing DISPLAY environment variable."; \
 		echo "Please set DISPLAY in the format ':<number>' (e.g., ':0')."; \
@@ -156,6 +159,9 @@ run-render-mode: validate_workload_mapping
 	@echo "Using config file: configs/$(CAMERA_STREAM)"
 	@echo "Using workload config: configs/$(WORKLOAD_DIST)"
 	@xhost +local:docker
+	@LOG_FILE="vlm_loss_prevention.log"; \
+		mkdir -p $$(dirname $$LOG_FILE); \
+		[ -f $$LOG_FILE ] || touch $$LOG_FILE
 	@if [ "$(REGISTRY)" = "true" ]; then \
 		echo "##############Using registry mode - fetching pipeline runner..."; \
 		mkdir -p results results/vlm-results; \
