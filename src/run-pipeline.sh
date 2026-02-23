@@ -96,8 +96,8 @@ if [ "${VLM_WORKLOAD_ENABLED}" = "0" ]; then
     done
 
     # Set GStreamer tracing environment
-    export GST_DEBUG="GST_TRACER:7"
-    export GST_TRACERS="latency(flags=pipeline)"
+    export GST_DEBUG="${GST_DEBUG:-GST_TRACER:7}"
+    export GST_TRACERS="${GST_TRACERS:-latency(flags=pipeline)}"
     export GST_VAAPI_INIT_DRM_DEVICE=/dev/dri/renderD128
 
     echo "Running with tracing enabled:"
@@ -110,7 +110,7 @@ if [ "${VLM_WORKLOAD_ENABLED}" = "0" ]; then
     # -----------------------------
     gst_log="$results_dir/gst-launch_$cid.log"
     echo "################# Running Pipeline ###################"
-    echo "GST_DEBUG=\"GST_TRACER:7\" GST_TRACERS='latency_tracer(flags=pipeline)' bash $pipeline_file"
+    echo "GST_DEBUG=\"$GST_DEBUG\" GST_TRACERS='$GST_TRACERS' bash $pipeline_file"
 
     gst_log="$results_dir/gst-launch_$cid.log"
 
