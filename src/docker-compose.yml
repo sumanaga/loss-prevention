@@ -203,8 +203,6 @@ services:
       - RTSP_STREAM_HOST=${RTSP_STREAM_HOST:-rtsp-streamer}
       - RTSP_STREAM_PORT=${RTSP_STREAM_PORT:-8554}
       - CONTAINER_NAME=${CONTAINER_NAME:-gst}
-      - GST_DEBUG="4"
-      - GST_TRACERS="latency_tracer(flags=pipeline)"
     volumes:
       - ../lp-vlm/src/pipeline/publish.py:/home/pipeline-server/lp-vlm/gvapython/publish.py
       - ../lp-vlm/src/pipeline/send_end_message.py:/home/pipeline-server/lp-vlm/gvapython/send_end_message.py
