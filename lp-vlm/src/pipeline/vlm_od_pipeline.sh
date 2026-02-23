@@ -76,7 +76,7 @@ fi
 
 echo "Starting Object Detection pipeline for stream: $STREAM_URI"
 
-export GST_DEBUG=4
+export GST_DEBUG="${GST_DEBUG:-4}"
 
 # Build ROI element conditionally
 if [ -n "$ROI_COORDINATES" ] && [ "$ROI_COORDINATES" != ",,," ]; then
