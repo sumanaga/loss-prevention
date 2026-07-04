@@ -76,8 +76,6 @@ Push item-recognition accuracy beyond traditional CV with a **local Large Vision
 ## Scope & related repositories
   This repo covers loss prevention **at the self-checkout / point of sale** — built on the Automated Self-Checkout foundation above. **Store-wide** loss prevention is a   separate effort in the Intel Retail AI Suite: - **Store-wide** loss prevention — suspicious-activity / behavioral analysis, person-of-interest re-identification &       alerting → [`intel-retail/storewide-loss-prevention.`](https://github.com/intel-retail/storewide-loss-prevention) ⚙️ *(confirm scope split with BU)* - Other suite      use cases: [Order Accuracy](https://github.com/intel-retail/order-accuracy) · [Voice-Enabled Interactions](https://github.com/intel-retail/voice-enabled-interactions) · [Digital Signage](https://github.com/intel-retail/digital-signage).
 
-[Order Accuracy](#https://github.com/intel-retail/order-accuracy)
-
 > Each use case in *this* repo is selected by a `CAMERA_STREAM` + `WORKLOAD_DIST` config pair, with **CPU / iGPU / NPU / hetero** variants (`configs/`).
 
 ## What to expect when you run it
