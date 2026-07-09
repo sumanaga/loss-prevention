@@ -170,18 +170,21 @@ make run-lp CAMERA_STREAM=camera_to_workload_vlm.json STREAM_LOOP=false
 __What to Expect__ (*`Non VLM Workload`*)
   
 + *Visual Mode*
-  - A video window opens showing the retail video with detection overlays.
+  - Opens a video window with retail footage and detection overlays.
+  - The pipeline runs until the input video finishes.
       
     **Note: The pipeline runs until the video completes**
 
 + *Visual and Headless Mode*
-   - Verify Output files:       
-     - `<loss-prevention-workspace>/results/pipeline_stream*.log` - FPS metrics (one value per line)
-     - `<oss-prevention-workspace>/results/gst-launch_*.log` - Full GStreamer output
+   - Verify that these output files are created and contain data:     
+     - `<loss-prevention-workspace>/results/pipeline_stream*.log`: per-stream FPS metrics (one value per line)
+     - `<oss-prevention-workspace>/results/gst-launch_*.log`: full GStreamer logs
               
-          :white_check_mark: Content in files ❌ No Files ❌ No Content in files
+   - Expected result:
+      - Files exist with content
+      - Files are non-empty
      
-        >In case of failure :point_right: [TroubleShooting](https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html#troubleshooting)
+If a run failse, see [TroubleShooting](https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html#troubleshooting)
 
 
 __Stop the application__
@@ -295,4 +298,4 @@ All services run on `my_network` bridge network for DNS resolution;use `rtsp-str
 
 ## Getting help
 
-Pick the use case closest to your needs, run the included benchmarks, and **reach out to your Intel Solution Manager to talk about what you found.** Full docs: the [Loss Prevention Documentation Guide](#https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html). In case of failure, see [Troubleshooting](#https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html#troubleshooting).
+Pick the use case closest to your needs, run the included benchmarks, and **reach out to your Intel Solution Manager to talk about what you found.** Full docs: the [Loss Prevention Documentation Guide](https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html). In case of failure, see [Troubleshooting](https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html#troubleshooting).
