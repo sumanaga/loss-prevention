@@ -128,6 +128,7 @@ First run downloads videos, models, and images (several minutes). By default `ma
 Each use case supports three actions — **run** it, **benchmark** a fixed load, and measure **stream density** — listed below in the same order they’re introduced above. Pick the device variant (`_cpu` / `_gpu`/ `_npu`) that matches your **target resource for the workload.** ⚙️ *Commands below extend today’s run-only examples to benchmark + density; engineering to validate exact flags/targets.*
 
 > **View results for any benchmark/density run:** `make consolidate-metrics` → `cat benchmark/metrics.csv,` and `make plot-metrics `→ utilization chart. *(Docs elsewhere say* `make consolidate/make plot;` *the repo targets are* `consolidate-metrics/plot-metrics` — ⚙️ *to reconcile.*)
+>For Advanced Benchmark settings, :point_right: [Benchmarking Guide](https://intel-retail.github.io/documentation/use-cases/loss-prevention/performance.html)
 
 #### 1 · ASC — basic self-checkout (the foundation)
 ```sh
@@ -138,24 +139,35 @@ make run-lp CAMERA_STREAM=camera_to_workload_asc_object_detection_classification
 # Object Detection only (CPU)
 make run-lp CAMERA_STREAM=camera_to_workload_asc_object_detection.json \
             WORKLOAD_DIST=workload_to_pipeline_asc_object_detection_cpu.json
-# benchmark + density: same CAMERA_STREAM/WORKLOAD_DIST, swap `run-lp` -> `benchmark` / `benchmark-stream-density`  ⚙️
+# benchmark + density (CPU)
+make benchmark-stream-density CAMERA_STREAM=camera_to_workload_asc_object_detection.json \
+            WORKLOAD_DIST=workload_to_pipeline_asc_object_detection_cpu.json
+# benchmark results
+make consolidate-metrics && cat benchmark/metrics.csv
 ```
 #### 2. ASC — real-world lane: scanning + age verification (parallel)
 ```sh
 # Age Verification on its own (iGPU)
 make run-lp CAMERA_STREAM=camera_to_workload_asc_age_verification.json \
             WORKLOAD_DIST=workload_to_pipeline_asc_age_verification_gpu.json
+# benchmark + density
+make benchmark-stream-density CAMERA_STREAM=camera_to_workload_asc_age_verification.json \
+            WORKLOAD_DIST=workload_to_pipeline_asc_age_verification_gpu.json
 # Combined lane: detection + classification + age prediction + face detection, spread across iGPU + NPU
 make run-lp CAMERA_STREAM=camera_to_workload_asc_hetero.json \
             WORKLOAD_DIST=workload_to_pipeline_asc_hetero.json
-# benchmark + density: swap `run-lp` -> `benchmark` / `benchmark-stream-density`  ⚙️
+# benchmark + density
+make benchmark-stream-density CAMERA_STREAM=camera_to_workload_asc_hetero.json \
+            WORKLOAD_DIST=workload_to_pipeline_asc_hetero.json
+# benchmark results
+make consolidate-metrics && cat benchmark/metrics.csv
 ```
 #### 3. Loss Prevention (the core — default 6-camera lane)
 ```sh
 RENDER_MODE=1 DISPLAY=:0 make run-lp                 # run (visual)
 make benchmark                                       # fixed-load benchmark
 make benchmark-stream-density                        # max sustainable lanes  ⚙️
-make consolidate-metrics && cat benchmark/metrics.csv
+make consolidate-metrics && cat benchmark/metrics.csv # benchmark resutls
 ```
 
 #### 4 · LVLM-enhanced workload
@@ -167,7 +179,7 @@ make run-lp CAMERA_STREAM=camera_to_workload_vlm.json STREAM_LOOP=false
 ```
 
 
-__What to Expect__ (*`Non VLM Workload`*)
+__What to Expect__
   
 + *Visual Mode*
   - Opens a video window with retail footage and detection overlays.
