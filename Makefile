@@ -41,8 +41,7 @@ USER_GROUP_ID ?= $(shell id -g)
 export USER_GROUP_ID
 # Default values for benchmark
 PIPELINE_COUNT ?= 1
-INIT_DURATION ?= 120
-TARGET_FPS ?= 14.95
+INIT_DURATION ?= 60
 CONTAINER_NAMES ?= gst0
 DENSITY_INCREMENT ?= 1
 MKDOCS_IMAGE ?= asc-mkdocs
@@ -156,10 +155,10 @@ download-sample-videos: | validate-camera-config
 	python3 download-scripts/download-video.py --camera-config configs/$(CAMERA_STREAM) --format-script performance-tools/benchmark-scripts/format_avc_mp4.sh
 
 update-submodules:
-	@echo "Cloning performance tool repositories"
-	git submodule deinit -f .
-	git submodule update --init --recursive
-	@echo "Submodules updated (if any present)."
+#	@echo "Cloning performance tool repositories"
+#	git submodule deinit -f .
+#	git submodule update --init --recursive
+#	@echo "Submodules updated (if any present)."
 
 check-device-env:
 	@echo "[INFO] Validating environment configuration..."
