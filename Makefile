@@ -155,10 +155,10 @@ download-sample-videos: | validate-camera-config
 	python3 download-scripts/download-video.py --camera-config configs/$(CAMERA_STREAM) --format-script performance-tools/benchmark-scripts/format_avc_mp4.sh
 
 update-submodules:
-#	@echo "Cloning performance tool repositories"
-#	git submodule deinit -f .
-#	git submodule update --init --recursive
-#	@echo "Submodules updated (if any present)."
+	@echo "Cloning performance tool repositories"
+	git submodule deinit -f .
+	git submodule update --init --recursive
+	@echo "Submodules updated (if any present)."
 
 check-device-env:
 	@echo "[INFO] Validating environment configuration..."
