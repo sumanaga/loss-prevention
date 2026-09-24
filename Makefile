@@ -42,6 +42,7 @@ export USER_GROUP_ID
 # Default values for benchmark
 PIPELINE_COUNT ?= 1
 INIT_DURATION ?= 60
+MEASUREMENT_WINDOW_SECONDS ?= 30
 CONTAINER_NAMES ?= gst0
 DENSITY_INCREMENT ?= 1
 MKDOCS_IMAGE ?= asc-mkdocs
@@ -319,6 +320,7 @@ benchmark-stream-density: build-benchmark download-sample-videos download-models
 	python3 benchmark.py \
 		--compose_file ../../src/$(DOCKER_COMPOSE) \
 		--init_duration $(INIT_DURATION) \
+		--measurement_window_seconds $(MEASUREMENT_WINDOW_SECONDS) \
 		--target_fps $(TARGET_FPS) \
 		--container_names $(CONTAINER_NAMES) \
 		--density_increment $(DENSITY_INCREMENT) \
