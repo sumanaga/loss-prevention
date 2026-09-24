@@ -99,7 +99,24 @@ The metrics that matter: **FPS, end-to-end latency, CPU/GPU/NPU utilization, pow
 
 - **Stream density = the most concurrent streams a box sustains at a target FPS.** Because an LP lane is **multi-camera** (six cameras at potentially different frame-rate needs), density is best read as **use-case instances**: “how many shopping lanes with this use case running per box”, judging **each camera against its own FPS target** (use-case density, not a raw stream count).
 - **Reading the result:** a stream cannot sustain more than its source FPS, so any per-stream reading **above** the source rate is a measurement artifact rather than real throughput. Two things cause it. The counter tallies whole frames inside a fixed window, and the window boundary does not line up with frame arrivals, so a window catches one frame more or fewer than expected. On a 15 fps source that shows up as readings of 14, 15 and 16 on a stream whose average is exactly 15, and it happens on a perfectly healthy stream. Under load a second cause appears: a pipeline that has fallen behind processes its buffered frames in a burst as it recovers. That is real work, but it is not a rate the pipeline can hold.
-- **How we measure it:** we ramp the number of streams, let each step settle, then read the sustained per-stream FPS against the target to find the most streams that hold it. This method has **known limitations** (a short measurement window can misread under noise) and we’re **actively improving it** toward a steadier measurement.
+- **How we measure it:** we ramp the number of streams, let each step settle, then read the sustained per-stream FPS against the target to find the most streams that hold it. `INIT_DURATION` controls the **settle time** — how long the pipelines run before any FPS samples are taken at each density step, so warm-up effects (model load, buffering, autoscaling) are excluded from the measurement. Its default is **60 seconds** (`INIT_DURATION ?= 60` in the `Makefile`). `MEASUREMENT_WINDOW_SECONDS` then controls how long FPS samples are collected for each density step. Its default is **30 seconds**, and a result must pass **two consecutive measurement windows** by default. Each window is evaluated independently; windows are not combined into one longer window. A longer settle time gives the pipelines more time to stabilize before measuring, and a longer window can reduce short-term measurement noise, but both increase the total benchmark duration. The resolved settle time is also printed in the stream-density result summary. For example:
+
+  ```sh
+  make benchmark-stream-density \
+    INIT_DURATION=120 \
+    MEASUREMENT_WINDOW_SECONDS=60
+  ```
+
+### How the target FPS is selected
+
+The stream-density benchmark resolves the effective target FPS for each camera using this precedence:
+
+1. `TARGET_FPS` environment variable, when explicitly supplied. This overrides the camera configuration for every stream.
+2. Per-camera `targetFps` in the selected `camera_to_workload_*.json` file. This is the explicit benchmark target for that camera.
+3. Per-camera `fps` in the camera configuration. This is used as the fallback target when `targetFps` is not present or is not a positive value.
+4. The default target FPS, currently `14.95`, when neither camera field provides a positive value.
+
+`TARGET_FPS` is an environment/command-line override, while `targetFps` and `fps` are JSON fields. The resolved target value and its source are recorded in `stream_density.log` so the benchmark result can be audited.
 
 ## Prerequisites
 
@@ -327,6 +344,21 @@ make run-lp DISPLAY=:0 REGISTRY=false RENDER_MODE=1
 ```sh
 make run-lp REGISTRY=false
 ```
+
+### Stream-density benchmark settings
+
+These settings control which configurations are benchmarked and how the stream-density search measures each density step.
+
+| Setting | Purpose | Default |
+|---|---|---|
+| `CAMERA_STREAM` | Camera/workload configuration | `camera_to_workload.json` |
+| `WORKLOAD_DIST` | Workload-to-pipeline configuration | `workload_to_pipeline.json` |
+| `INIT_DURATION` | Settle time before FPS measurement begins at each density step | `60` seconds |
+| `MEASUREMENT_WINDOW_SECONDS` | FPS collection duration per window | `30` seconds |
+| `DENSITY_INCREMENT` | Pipelines added during scaling | `1` |
+| `TARGET_FPS` | Explicit override for all streams | unset |
+| `targetFps` (JSON field) | Per-camera target in `camera_to_workload_*.json` | Per configuration |
+
 ### Configuration & user-defined workloads
 - Workloads are configured by JSON in `configs/` plus the `CAMERA_STREAM` / `WORKLOAD_DIST` env vars (CPU/GPU/NPU/hetero variants, [availability varies by use case](#per-use-case-walkthroughs)). You can also **define your own**: map cameras to custom pipelines by editing `camera_to_workload_*.json` (which cameras run which workloads) and `workload_to_pipeline_*.json` (each workload’s *pipeline*, a sequence of GStreamer elements + models, e.g. `gvadetect` / `gvaclassify`, on a chosen device). See the [Documentation Guide](https://intel-retail.github.io/documentation/use-cases/loss-prevention/getting_started.html) for pre-configured workloads and [User-Defined Workloads](https://intel-retail.github.io/documentation/use-cases/loss-prevention/advanced.html#user-defined-workloads) for the full definitions.
 
